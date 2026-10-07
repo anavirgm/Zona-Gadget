@@ -107,8 +107,13 @@ update public.profiles set role = 'admin' where email = 'admin@zonagadget.dev';
 El repo trae la configuración lista: `vercel.json`, `api/index.js` y un `package.json` en la raíz.
 
 - **`api/index.js`** exporta la app de Express tal cual: el runtime de Vercel invoca la exportación como listener HTTP `(req, res)`, que es exactamente la firma de una app de Express — no se necesita `serverless-http` ni ningún adapter, y no se llama `app.listen()`.
-- **`vercel.json`** reescribe todas las rutas (`/(.*)` → `/api/index`) y empaqueta `frontend/` en la Function con `includeFiles`, para que Express siga sirviendo la SPA, sus assets y las fotos de producto (los archivos estáticos que existan en la raíz se resuelven antes del rewrite).
-- **`package.json` (raíz)** duplica las dependencias de `backend/package.json`: Vercel instala las dependencias desde la raíz del repo. Si agregas una dependencia al backend, agrégala también en la raíz.
+- **`vercel.json`** separa dos cosas:
+  - Los **assets del SPA** (`/js/*`, `/css/*`, `/assets/*` y `/`) se reescriben a `/frontend/…`, donde Vercel los sirve **directamente como estáticos** (los archivos originales, vía CDN).
+  - Todo lo demás (`/api/*`, `/account`, rutas SPA como `/shop`) cae en el rewrite final → `/api/index` (la Function Express).
+  - `includeFiles` empaqueta **solo `frontend/index.html`** dentro de la Function (fallback SPA + template del SSR).
+- **`package.json` (raíz)** — manifest que Vercel usa para instalar las dependencias (mismas que `backend/package.json`). Si agregas una dependencia al backend, agrégala también en la raíz.
+
+> ⚠️ **No metas los `.js` del frontend en el paquete de la Function** (p. ej. `includeFiles: "frontend/**"`): Vercel los detecta como ESM sin `"type": "module"` y los compila a CommonJS (*"Node.js functions are compiled from ESM to CommonJS"*), resultando en `require is not defined` en el navegador. Por eso los assets se sirven como estáticos y la Function solo recibe el `index.html`.
 
 ### Pasos
 

@@ -2,10 +2,14 @@
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "functions": {
     "api/index.js": {
-      "includeFiles": "frontend/**"
+      "includeFiles": "frontend/index.html"
     }
   },
   "rewrites": [
+    { "source": "/js/:path*", "destination": "/frontend/js/:path*" },
+    { "source": "/css/:path*", "destination": "/frontend/css/:path*" },
+    { "source": "/assets/:path*", "destination": "/frontend/assets/:path*" },
+    { "source": "/", "destination": "/frontend/index.html" },
     { "source": "/(.*)", "destination": "/api/index" }
   ]
 }
