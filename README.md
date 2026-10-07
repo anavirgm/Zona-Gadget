@@ -102,6 +102,39 @@ update public.profiles set role = 'admin' where email = 'admin@zonagadget.dev';
 
 ---
 
+## Despliegue en Vercel
+
+El repo trae la configuración lista: `vercel.json`, `api/index.js` y un `package.json` en la raíz.
+
+- **`api/index.js`** exporta la app de Express tal cual: el runtime de Vercel invoca la exportación como listener HTTP `(req, res)`, que es exactamente la firma de una app de Express — no se necesita `serverless-http` ni ningún adapter, y no se llama `app.listen()`.
+- **`vercel.json`** reescribe todas las rutas (`/(.*)` → `/api/index`) y empaqueta `frontend/` en la Function con `includeFiles`, para que Express siga sirviendo la SPA, sus assets y las fotos de producto (los archivos estáticos que existan en la raíz se resuelven antes del rewrite).
+- **`package.json` (raíz)** duplica las dependencias de `backend/package.json`: Vercel instala las dependencias desde la raíz del repo. Si agregas una dependencia al backend, agrégala también en la raíz.
+
+### Pasos
+
+1. **Variables de entorno** en el dashboard (*Project Settings → Environment Variables*). El `.env` no se despliega (está en `.gitignore`):
+
+   | Variable | Valor |
+   |---|---|
+   | `NODE_ENV` | `production` |
+   | `CORS_ORIGIN` | `https://<proyecto>.vercel.app` |
+   | `SUPABASE_URL` · `SUPABASE_ANON_KEY` · `SUPABASE_SERVICE_ROLE_KEY` · `SUPABASE_JWT_SECRET` | Project Settings → API de Supabase |
+   | `LOG_LEVEL` | `info` |
+
+2. **Desplegar** (cualquiera de las dos):
+   - **Git:** importa el repo en [vercel.com](https://vercel.com) — detecta `vercel.json` sin pasos extra.
+   - **CLI:** `npx vercel` (preview) y luego `npx vercel --prod`.
+
+3. **Verificar:** `GET https://<proyecto>.vercel.app/api/health` → `{"status":"ok"}`.
+
+### Consideraciones en serverless
+
+- ⚠️ La caché de sesiones y el rate limiting van **en memoria**: en Vercel se reinician en cada cold start y no se comparten entre instancias. La V4 (bypass de revocación JWT) se comporta distinto que en local: el token cacheado deja de servir tras un cold start.
+- Mantén activa la **Password Protection / Deployment Protection** de Vercel: el laboratorio no debe exponerse en Internet (ver advertencia al inicio).
+- El desarrollo local no cambia: `cd backend && npm run dev`.
+
+---
+
 ## Referencia de la API
 
 | Método | Ruta | Auth | Descripción |
